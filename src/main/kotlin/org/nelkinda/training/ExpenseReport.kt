@@ -1,43 +1,51 @@
 package org.nelkinda.training
 
-import java.util.*
+import java.io.PrintStream
+import java.util.Date
 
-enum class ExpenseType {
-    DINNER, BREAKFAST, CAR_RENTAL
+enum class ExpenseType(val typeName: String, val limit: Int, val isMeal: Boolean) {
+    DINNER("Dinner", 5000, true),
+    BREAKFAST("Breakfast", 1001, true),
+    CAR_RENTAL("Car Rental", Int.MAX_VALUE, false)
 }
 
-class Expense {
-    var type: ExpenseType? = null
-    var amount: Int? = null
+class Expense(val type: ExpenseType, val amount: Int) {
+    fun isMeal() = type.isMeal
+
+    fun getName(): String {
+        return type.typeName
+    }
+
+    fun isOverLimit() = amount > type.limit
 }
 
-class ExpenseReport {
-    fun printReport(expenses: List<Expense>) {
-        var total = 0
-        var mealExpenses = 0
+class ExpenseReport(private val out: PrintStream) {
+    fun printReport(expenses: List<Expense>, date: Date) {
+        printHeader(date)
+        printBody(expenses)
+        printFooter(expenses)
+    }
 
-        println("Expenses " + Date())
+    private fun printHeader(date: Date) {
+        out.println("Expenses $date")
+    }
 
+    private fun printBody(expenses: List<Expense>) {
         for (expense in expenses) {
-            if (expense.type == ExpenseType.DINNER || expense.type == ExpenseType.BREAKFAST) {
-                mealExpenses += expense.amount!!
-            }
-
-            var expenseName = ""
-            when (expense.type) {
-                ExpenseType.DINNER -> expenseName  = "Dinner"
-                ExpenseType.BREAKFAST -> expenseName = "Breakfast"
-                ExpenseType.CAR_RENTAL -> expenseName = "Car Rental"
-            }
-
-            val mealOverExpensesMarker = if (expense.type == ExpenseType.DINNER && expense.amount!! > 5000 || expense.type == ExpenseType.BREAKFAST && expense.amount!! > 1000) "X" else " "
-
-            println(expenseName + "\t" + expense.amount + "\t" + mealOverExpensesMarker)
-
-            total += expense.amount!!
+            val mealOverExpensesMarker = if (expense.isOverLimit()) "X" else " "
+            out.println("${expense.getName()}	${expense.amount}	$mealOverExpensesMarker")
         }
+    }
 
-        println("Meal expenses: $mealExpenses")
-        println("Total expenses: $total")
+    private fun printFooter(expenses: List<Expense>) {
+        out.println("Meal expenses: ${sumExpenses(expenses) { it.isMeal() }}")
+        out.println("Total expenses: ${sumExpenses(expenses) { true }}")
+    }
+
+    private fun sumExpenses(expenses: List<Expense>, filterBy: (Expense) -> Boolean): Int {
+        return expenses
+            .filter { filterBy(it) }
+            .map { it.amount }
+            .sum()
     }
 }
